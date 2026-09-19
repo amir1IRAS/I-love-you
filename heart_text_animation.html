@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turtle Style Heart Text Animation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazirmatn', 'Inter', sans-serif;
+            background-color: #000000;
+            overflow: hidden;
+            user-select: none;
+        }
+        .turtle-glow {
+            filter: drop-shadow(0 0 8px #ffb6c1);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen m-0 p-0 text-white flex flex-col justify-between bg-black">
+    <!-- Background Animated Canvas -->
+    <canvas id="heartCanvas" class="absolute inset-0 w-full h-full block z-0"></canvas>
+
+    <!-- Top Status & Controls Header -->
+    <header class="relative z-10 w-full px-6 py-4 flex items-center justify-between pointer-events-none">
+        <div class="pointer-events-auto flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-pink-500/20 border border-[#ffb6c1]/40 flex items-center justify-center text-[#ffb6c1] animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-sm md:text-base font-semibold text-[#ffb6c1]">ترسیم ترتل قلب با «I love you»</h1>
+                <p id="drawingStatus" class="text-xs text-pink-300/70 font-mono">در حال ترسیم لایه‌ها...</p>
+            </div>
+        </div>
+
+        <div class="pointer-events-auto flex items-center gap-2">
+            <button id="replayBtn" class="px-3.5 py-1.5 rounded-lg bg-pink-950/40 border border-[#ffb6c1]/30 hover:border-[#ffb6c1] text-xs text-[#ffb6c1] transition active:scale-95 flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>رسم مجدد</span>
+            </button>
+            <button id="speedBtn" class="px-3 py-1.5 rounded-lg bg-pink-950/40 border border-[#ffb6c1]/30 hover:border-[#ffb6c1] text-xs text-[#ffb6c1] transition">
+                سرعت: <span id="speedIndicator" class="font-mono">عادی</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Bottom Footer / Formula info -->
+    <footer class="relative z-10 w-full p-4 flex flex-col sm:flex-row items-center justify-between text-xs text-pink-400/50 pointer-events-none">
+        <div class="pointer-events-auto flex items-center gap-2">
+            <span id="progressBar" class="text-pink-300 font-mono text-xs">۰٪ تکمیل شده</span>
+        </div>
+        <div class="pointer-events-auto text-[11px] text-[#ffb6c1]/60 font-mono">
+            Turtle Formula: x=16sin³t, y=13cost - 5cos2t - 2cos3t - cos4t
+        </div>
+    </footer>
+    <script>
+    (function () {
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = (canvas.width = window.innerWidth);
+        let height = (canvas.height = window.innerHeight);
+
+        const drawingStatus = document.getElementById('drawingStatus');
+        const progressBar = document.getElementById('progressBar');
+        const replayBtn = document.getElementById('replayBtn');
+        const speedBtn = document.getElementById('speedBtn');
+        const speedIndicator = document.getElementById('speedIndicator');
+
+        // Points generated exactly matching the Python Turtle nested loops:
+        // for scale in range(11, 17):
+        //     for i in range(120):
+        let drawingPoints = [];
+        let currentIndex = 0;
+        let speedMultiplier = 1; // 1 = normal, 2 = fast, 4 = instant
+        let isComplete = false;
+        let pulsePhase = 0;
+
+        function generateHeartPoints() {
+            drawingPoints = [];
+            const isMobile = width < 768;
+            // Base visual multiplier so it fits nicely on any screen size
+            const visualScaleRatio = isMobile ? Math.min(width, height) / 600 : Math.min(width, height) / 500;
+
+            // Python range(11, 17) => scales 11, 12, 13, 14, 15, 16
+            for (let scale = 11; scale < 17; scale++) {
+                const currentScale = scale * visualScaleRatio;
+                for (let i = 0; i < 120; i++) {
+                    const angle = i * (Math.PI * 2) / 120;
+
+                    // Exact Python formulas:
+                    // x = 16*(math.sin(angle)**3)*scale
+                    // y = (13*math.cos(angle)-5*math.cos(2*angle)-2*math.cos(3*angle)-math.cos(4*angle))*scale
+                    const x = 16 * Math.pow(Math.sin(angle), 3) * currentScale;
+                    // Note: Canvas Y coordinates are inverted compared to Turtle geometry (Y grows downwards)
+                    const y = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle)) * currentScale;
+
+                    drawingPoints.push({
+                        x: x,
+                        y: y,
+                        scale: scale,
+                        angle: angle,
+                        text: "I love you"
+                    });
+                }
+            }
+        }
+
+        function restartDrawing() {
+            currentIndex = 0;
+            isComplete = false;
+            pulsePhase = 0;
+            drawingStatus.textContent = "در حال ترسیم لایه‌ها...";
+            generateHeartPoints();
+        }
+
+        function handleResize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            generateHeartPoints();
+        }
+        window.addEventListener('resize', handleResize);
+
+        // Drawing loop
+        function drawFrame() {
+            requestAnimationFrame(drawFrame);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            if (!isComplete) {
+                // Clear background with deep pitch black as requested
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, width, height);
+
+                // Advance drawing cursor (reproducing turtle.speed)
+                const stepCount = (speedMultiplier === 1) ? 2 : (speedMultiplier === 2 ? 6 : 18);
+                currentIndex = Math.min(drawingPoints.length, currentIndex + stepCount);
+
+                const progress = Math.floor((currentIndex / drawingPoints.length) * 100);
+                progressBar.textContent = progress + "٪ تکمیل شده";
+
+                // Render drawn words
+                ctx.save();
+                ctx.fillStyle = '#ffb6c1';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 9px Arial, sans-serif';
+
+                for (let k = 0; k < currentIndex; k++) {
+                    const pt = drawingPoints[k];
+                    ctx.fillText(pt.text, centerX + pt.x, centerY + pt.y);
+                }
+
+                // Render turtle cursor pen tip
+                if (currentIndex < drawingPoints.length) {
+                    const currentPt = drawingPoints[currentIndex - 1] || drawingPoints[0];
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = '#ffb6c1';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(centerX + currentPt.x, centerY + currentPt.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                if (currentIndex >= drawingPoints.length) {
+                    isComplete = true;
+                    drawingStatus.textContent = "ترسیم به اتمام رسید ♥";
+                    progressBar.textContent = "۱۰۰٪ کامل شد";
+                }
+            } else {
+                // Subtle organic pulsation after drawing finishes
+                pulsePhase += 0.04;
+                const beat = 1 + Math.sin(pulsePhase) * 0.035;
+
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.save();
+                ctx.fillStyle = '#ffb6c1';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 9px Arial, sans-serif';
+                ctx.shadowColor = 'rgba(255, 182, 193, 0.45)';
+                ctx.shadowBlur = 6;
+
+                for (let k = 0; k < drawingPoints.length; k++) {
+                    const pt = drawingPoints[k];
+                    ctx.fillText(pt.text, centerX + pt.x * beat, centerY + pt.y * beat);
+                }
+                ctx.restore();
+            }
+        }
+
+        // Speed toggle button
+        const speeds = [
+            { mult: 1, label: 'عادی' },
+            { mult: 2, label: 'سریع' },
+            { mult: 4, label: 'فوری' }
+        ];
+        let speedIdx = 0;
+        speedBtn.addEventListener('click', () => {
+            speedIdx = (speedIdx + 1) % speeds.length;
+            speedMultiplier = speeds[speedIdx].mult;
+            speedIndicator.textContent = speeds[speedIdx].label;
+        });
+
+        // Replay button
+        replayBtn.addEventListener('click', () => {
+            restartDrawing();
+        });
+
+        // Auto start on page load
+        window.onload = function () {
+            restartDrawing();
+            drawFrame();
+        };
+    })();
+    </script>
+</body>
+</html>
