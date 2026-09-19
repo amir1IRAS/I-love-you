@@ -47,7 +47,7 @@
                 <span>رسم مجدد</span>
             </button>
             <button id="speedBtn" class="px-3 py-1.5 rounded-lg bg-pink-950/40 border border-[#ffb6c1]/30 hover:border-[#ffb6c1] text-xs text-[#ffb6c1] transition">
-                سرعت: <span id="speedIndicator" class="font-mono">عادی</span>
+                سرعت: <span id="speedIndicator" class="font-mono">خیلی آرام</span>
             </button>
         </div>
     </header>
@@ -80,7 +80,7 @@
         //     for i in range(120):
         let drawingPoints = [];
         let currentIndex = 0;
-        let speedMultiplier = 1; // 1 = normal, 2 = fast, 4 = instant
+        let speedRate = 0.12; // سرعت بسیار کمتر و آرام (تقریباً هر ۸ فریم یک کلمه)
         let isComplete = false;
         let pulsePhase = 0;
 
@@ -141,11 +141,11 @@
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(0, 0, width, height);
 
-                // Advance drawing cursor (reproducing turtle.speed)
-                const stepCount = (speedMultiplier === 1) ? 2 : (speedMultiplier === 2 ? 6 : 18);
-                currentIndex = Math.min(drawingPoints.length, currentIndex + stepCount);
+                // پیشروی گام‌به‌گام و آرام قلم
+                currentIndex = Math.min(drawingPoints.length, currentIndex + speedRate);
+                const visibleCount = Math.floor(currentIndex);
 
-                const progress = Math.floor((currentIndex / drawingPoints.length) * 100);
+                const progress = Math.floor((visibleCount / drawingPoints.length) * 100);
                 progressBar.textContent = progress + "٪ تکمیل شده";
 
                 // Render drawn words
@@ -155,14 +155,14 @@
                 ctx.textBaseline = 'middle';
                 ctx.font = 'bold 9px Arial, sans-serif';
 
-                for (let k = 0; k < currentIndex; k++) {
+                for (let k = 0; k < visibleCount; k++) {
                     const pt = drawingPoints[k];
                     ctx.fillText(pt.text, centerX + pt.x, centerY + pt.y);
                 }
 
                 // Render turtle cursor pen tip
-                if (currentIndex < drawingPoints.length) {
-                    const currentPt = drawingPoints[currentIndex - 1] || drawingPoints[0];
+                if (visibleCount < drawingPoints.length) {
+                    const currentPt = drawingPoints[visibleCount] || drawingPoints[0];
                     ctx.fillStyle = '#ffffff';
                     ctx.shadowColor = '#ffb6c1';
                     ctx.shadowBlur = 10;
@@ -172,7 +172,7 @@
                 }
                 ctx.restore();
 
-                if (currentIndex >= drawingPoints.length) {
+                if (visibleCount >= drawingPoints.length) {
                     isComplete = true;
                     drawingStatus.textContent = "ترسیم به اتمام رسید ♥";
                     progressBar.textContent = "۱۰۰٪ کامل شد";
@@ -201,16 +201,17 @@
             }
         }
 
-        // Speed toggle button
+        // Speed toggle button with very slow pacing options
         const speeds = [
-            { mult: 1, label: 'عادی' },
-            { mult: 2, label: 'سریع' },
-            { mult: 4, label: 'فوری' }
+            { rate: 0.12, label: 'خیلی آرام' },
+            { rate: 0.05, label: 'فوق‌آهسته' },
+            { rate: 0.25, label: 'آرام' },
+            { rate: 0.6, label: 'متوسط' }
         ];
         let speedIdx = 0;
         speedBtn.addEventListener('click', () => {
             speedIdx = (speedIdx + 1) % speeds.length;
-            speedMultiplier = speeds[speedIdx].mult;
+            speedRate = speeds[speedIdx].rate;
             speedIndicator.textContent = speeds[speedIdx].label;
         });
 
