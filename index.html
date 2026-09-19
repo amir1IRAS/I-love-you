@@ -21,66 +21,45 @@
         }
     </style>
 </head>
-<body class="relative w-screen h-screen m-0 p-0 text-white flex flex-col justify-between bg-black">
+<body class="relative w-screen h-screen m-0 p-0 text-white bg-black overflow-hidden select-none cursor-pointer">
+    <!-- Minimalist Floating Control Pill with matching soft pink translucent theme -->
+    <div class="fixed top-4 right-4 z-20 flex items-center gap-1.5 opacity-45 hover:opacity-100 transition-all duration-300 backdrop-blur-md bg-[#ffb6c1]/10 border border-[#ffb6c1]/25 px-2.5 py-1 rounded-full text-xs font-mono shadow-[0_0_12px_rgba(255,182,193,0.15)]">
+        <!-- Speed Cycle Button (0.7 -> 0.5 -> 1 -> 0.7) -->
+        <button id="speedToggleBtn" type="button" aria-label="تغییر سرعت" class="px-2 py-0.5 rounded-full text-[#ffb6c1]/85 hover:text-[#ffb6c1] hover:bg-[#ffb6c1]/15 transition-all duration-200 cursor-pointer outline-none">
+            0.7x
+        </button>
+
+        <span class="w-px h-3 bg-[#ffb6c1]/30"></span>
+
+        <!-- Replay SVG Icon Button -->
+        <button id="replayBtn" type="button" aria-label="رسم مجدد" title="رسم مجدد" class="p-1 rounded-full text-[#ffb6c1]/85 hover:text-[#ffb6c1] hover:bg-[#ffb6c1]/15 hover:rotate-180 transition-all duration-500 cursor-pointer outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        </button>
+    </div>
+
     <!-- Background Animated Canvas -->
     <canvas id="heartCanvas" class="absolute inset-0 w-full h-full block z-0"></canvas>
 
-    <!-- Top Status & Controls Header -->
-    <header class="relative z-10 w-full px-6 py-4 flex items-center justify-between pointer-events-none">
-        <div class="pointer-events-auto flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-pink-500/20 border border-[#ffb6c1]/40 flex items-center justify-center text-[#ffb6c1] animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                </svg>
-            </div>
-            <div>
-                <h1 class="text-sm md:text-base font-semibold text-[#ffb6c1]">ترسیم ترتل قلب با «I love you»</h1>
-                <p id="drawingStatus" class="text-xs text-pink-300/70 font-mono">در حال ترسیم لایه‌ها...</p>
-            </div>
-        </div>
-
-        <div class="pointer-events-auto flex items-center gap-2">
-            <button id="replayBtn" class="px-3.5 py-1.5 rounded-lg bg-pink-950/40 border border-[#ffb6c1]/30 hover:border-[#ffb6c1] text-xs text-[#ffb6c1] transition active:scale-95 flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span>رسم مجدد</span>
-            </button>
-            <button id="speedBtn" class="px-3 py-1.5 rounded-lg bg-pink-950/40 border border-[#ffb6c1]/30 hover:border-[#ffb6c1] text-xs text-[#ffb6c1] transition">
-                سرعت: <span id="speedIndicator" class="font-mono">خیلی آرام</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Bottom Footer / Formula info -->
-    <footer class="relative z-10 w-full p-4 flex flex-col sm:flex-row items-center justify-between text-xs text-pink-400/50 pointer-events-none">
-        <div class="pointer-events-auto flex items-center gap-2">
-            <span id="progressBar" class="text-pink-300 font-mono text-xs">۰٪ تکمیل شده</span>
-        </div>
-        <div class="pointer-events-auto text-[11px] text-[#ffb6c1]/60 font-mono">
-            Turtle Formula: x=16sin³t, y=13cost - 5cos2t - 2cos3t - cos4t
-        </div>
-    </footer>
     <script>
     (function () {
         const canvas = document.getElementById('heartCanvas');
         const ctx = canvas.getContext('2d');
+        const speedToggleBtn = document.getElementById('speedToggleBtn');
+        const replayBtn = document.getElementById('replayBtn');
 
         let width = (canvas.width = window.innerWidth);
         let height = (canvas.height = window.innerHeight);
 
-        const drawingStatus = document.getElementById('drawingStatus');
-        const progressBar = document.getElementById('progressBar');
-        const replayBtn = document.getElementById('replayBtn');
-        const speedBtn = document.getElementById('speedBtn');
-        const speedIndicator = document.getElementById('speedIndicator');
-
         // Points generated exactly matching the Python Turtle nested loops:
-        // for scale in range(11, 17):
-        //     for i in range(120):
         let drawingPoints = [];
         let currentIndex = 0;
-        let speedRate = 0.12; // سرعت بسیار کمتر و آرام (تقریباً هر ۸ فریم یک کلمه)
+        
+        // Speed options: 0.7, 0.5, 1
+        const speedOptions = [0.7, 0.5, 1.0];
+        let speedIndex = 0; // Starts at 0.7
+        let speedRate = speedOptions[speedIndex];
         let isComplete = false;
         let pulsePhase = 0;
 
@@ -97,10 +76,7 @@
                     const angle = i * (Math.PI * 2) / 120;
 
                     // Exact Python formulas:
-                    // x = 16*(math.sin(angle)**3)*scale
-                    // y = (13*math.cos(angle)-5*math.cos(2*angle)-2*math.cos(3*angle)-math.cos(4*angle))*scale
                     const x = 16 * Math.pow(Math.sin(angle), 3) * currentScale;
-                    // Note: Canvas Y coordinates are inverted compared to Turtle geometry (Y grows downwards)
                     const y = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle)) * currentScale;
 
                     drawingPoints.push({
@@ -118,7 +94,6 @@
             currentIndex = 0;
             isComplete = false;
             pulsePhase = 0;
-            drawingStatus.textContent = "در حال ترسیم لایه‌ها...";
             generateHeartPoints();
         }
 
@@ -129,7 +104,6 @@
         }
         window.addEventListener('resize', handleResize);
 
-        // Drawing loop
         function drawFrame() {
             requestAnimationFrame(drawFrame);
 
@@ -137,16 +111,13 @@
             const centerY = height / 2;
 
             if (!isComplete) {
-                // Clear background with deep pitch black as requested
+                // Clear background with deep pitch black
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(0, 0, width, height);
 
-                // پیشروی گام‌به‌گام و آرام قلم
+                // پیشروی آرام و تدریجی
                 currentIndex = Math.min(drawingPoints.length, currentIndex + speedRate);
                 const visibleCount = Math.floor(currentIndex);
-
-                const progress = Math.floor((visibleCount / drawingPoints.length) * 100);
-                progressBar.textContent = progress + "٪ تکمیل شده";
 
                 // Render drawn words
                 ctx.save();
@@ -163,11 +134,9 @@
 
                 if (visibleCount >= drawingPoints.length) {
                     isComplete = true;
-                    drawingStatus.textContent = "ترسیم به اتمام رسید ♥";
-                    progressBar.textContent = "۱۰۰٪ کامل شد";
                 }
             } else {
-                // Subtle organic pulsation after drawing finishes
+                // تپش ملایم و ارگانیک پس از پایان رسم
                 pulsePhase += 0.04;
                 const beat = 1 + Math.sin(pulsePhase) * 0.035;
 
@@ -190,23 +159,25 @@
             }
         }
 
-        // Speed toggle button with very slow pacing options
-        const speeds = [
-            { rate: 0.12, label: 'خیلی آرام' },
-            { rate: 0.05, label: 'فوق‌آهسته' },
-            { rate: 0.25, label: 'آرام' },
-            { rate: 0.6, label: 'متوسط' }
-        ];
-        let speedIdx = 0;
-        speedBtn.addEventListener('click', () => {
-            speedIdx = (speedIdx + 1) % speeds.length;
-            speedRate = speeds[speedIdx].rate;
-            speedIndicator.textContent = speeds[speedIdx].label;
+        // Replay button handler
+        replayBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            restartDrawing();
         });
 
-        // Replay button
-        replayBtn.addEventListener('click', () => {
-            restartDrawing();
+        // Speed toggle button handler (cycles between 0.7, 0.5, 1)
+        speedToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            speedIndex = (speedIndex + 1) % speedOptions.length;
+            speedRate = speedOptions[speedIndex];
+            speedToggleBtn.innerText = `${speedRate}x`;
+        });
+
+        // Tap or click canvas background to replay once finished
+        window.addEventListener('click', () => {
+            if (isComplete) {
+                restartDrawing();
+            }
         });
 
         // Auto start on page load
