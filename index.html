@@ -159,17 +159,6 @@
                     const pt = drawingPoints[k];
                     ctx.fillText(pt.text, centerX + pt.x, centerY + pt.y);
                 }
-
-                // Render turtle cursor pen tip
-                if (visibleCount < drawingPoints.length) {
-                    const currentPt = drawingPoints[visibleCount] || drawingPoints[0];
-                    ctx.fillStyle = '#ffffff';
-                    ctx.shadowColor = '#ffb6c1';
-                    ctx.shadowBlur = 10;
-                    ctx.beginPath();
-                    ctx.arc(centerX + currentPt.x, centerY + currentPt.y, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
                 ctx.restore();
 
                 if (visibleCount >= drawingPoints.length) {
